@@ -1,7 +1,7 @@
 
 # KNIGHT
 
-BY: SIMON KLIT-JOHNSON // github.com/simonklitjohnson
+Game for Octojam III developed in Octo for CHIP8.
 
 Move with WASD, attack with E and dash with Q.
 
