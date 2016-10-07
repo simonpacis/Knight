@@ -3,6 +3,8 @@
 
 Game for Octojam III developed in Octo for CHIP8.
 
+Play it here: https://johnearnest.github.io/Octo/index.html?gist=b82562612e716579ae70469e44c79eb1
+
 Move with WASD, attack with E and dash with Q.
 
 2016 – WTFPL license.
