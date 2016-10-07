@@ -1,13 +1,13 @@
 
-KNIGHT
-––––––––––––––––––––––––––––
+# KNIGHT
+
 BY: SIMON KLIT-JOHNSON // github.com/simonklitjohnson
 
 Move with WASD, attack with E and dash with Q.
 
-2016
+2016 – WTFPL license.
 
-# Description:
+## Description
 
 You're Artore the Puny, littlebrother and inferior to your great big brother, King Arthur.
 
