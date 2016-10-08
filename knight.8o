@@ -2,7 +2,7 @@
 # KNIGHT
 # ––––––––––––––––––––––––––––
 # BY: SIMON KLIT-JOHNSON // github.com/simonklitjohnson
-# Move with WASD, attack with E and dash with Q.
+# Move with WASD, attack with E and dodge with Q.
 #
 # 2016
 #
@@ -13,6 +13,7 @@
 # There have been speculations that the village alchemist, Nefarious Richard, has developed a potion that will allow him
 # 	to turn into a highly dangerous bat-like creature. You've embarked on a quest to slay Nefarious Richard, who rumor
 #	will have it has had too much of his own potion, and is now permanently a bat-like creature.
+# Your big brother King Arthur has promised you that if you slay Nefarious Richard, you earn the rights to the throne!
 #
 # Good luck!
 
@@ -20,14 +21,14 @@
 :alias px vd
 :alias py vc
 :alias ps vb
-:alias pe va
-:alias ex v9
-:alias ey v8
-:alias playerlives v7
-:alias enemylives v6
-:alias dashflag v5
-:alias pwidth v4
-:alias attackcounter v3
+:alias ex va
+:alias ey v9
+:alias eyfrac v3
+:alias playerlives v8
+:alias enemylives v7
+:alias dashcounter v6
+:alias strikecounter v5
+:alias attackcounter v4
 
 :const IDLE 1
 :const ATTACK 2
@@ -43,14 +44,14 @@
 
 : main
 	# set variables start
-	dashflag := 1
 	playerlives := 9
 	enemylives := 4
+	dashcounter := 0
+	strikecounter := 0
 
 	px := 235
 	py := 0b0001111
 	ps := IDLE
-	pe := WEAPON
 	# set variables end
 		hires
 		i := kni
@@ -72,7 +73,7 @@
 		v0 += 11
 		sprite v0 v1 0
 		i := sh
-		v0 += 12
+		v0 += 16
 		sprite v0 v1 0
 
 		i := e-key
@@ -134,7 +135,7 @@
 		playerlives := 8
 		loop
 		if playerlives > 7 begin			
-				v0 := 13   if v0 key then playerlives := 7 # keyboard E - attack
+				v0 := 13   if v0 key then playerlives := 7 # keyboard R - play
 		else
 			if playerlives == 7 begin
 				lores
@@ -154,20 +155,31 @@
 				end		
 				# lock the framerate of this program via the delay timer:
 				loop
-					v2 := delay
-					if v2 != 0 then
+					v0 := delay
+					if v0 != 0 then
 				again
-				v2 := 3
-				delay := v2
+				v0 := 3
+				delay := v0
 			again	
 		end
 	again
 
 : draw
+	sprite px py 0 #erase player
 	# if player is attacking, let attack persist for a couple of frames (reduces difficulty) before dropping to idle
-	if ps == DASH then ps := IDLE
 	if ps == ATTACK begin
 		if attackcounter > 2 begin
+			ps := IDLE
+		end
+	end
+	draw-dash-counter
+	if dashcounter == 20 begin
+		dashcounter := 0
+	end
+	draw-dash-counter
+
+	if ps == DASH begin
+		if dashcounter > 2 begin
 			ps := IDLE
 		end
 	end
@@ -176,30 +188,42 @@
 		attackcounter := 0
 	end
 	if attackcounter > 0 then attackcounter += 1
-
+	if dashcounter > 0 then dashcounter += 1
+	if strikecounter > 0 then strikecounter += 1
 	# erase the player, update its position and then redraw:
-	sprite px py 0 #erase player
 	keypresses #detect keypresses
-	if ps == ATTACK then select-player-attack-sprite #if player is attacking, find correct sprite
-	if ps == IDLE then select-player-idle-sprite #if player is idle, find correct sprite
-	if ps == DASH then select-player-idle-sprite #if player is idle, find correct sprite
+	if ps == ATTACK then i := player-weapon-attack #if player is attacking, find correct sprite
+	if ps == IDLE then i := player-weapon #if player is idle, find correct sprite
+	if ps == DASH then i := player-weapon #if player is idle, find correct sprite
 	sprite px py 0
-	i := enemy
+	if strikecounter > 0 begin
+		i := enemy-pullback
+	else
+		i := enemy
+	end
 	sprite ex ey 0
 	ai
+	if strikecounter > 0 begin
+		i := enemy-pullback
+	else
+		i := enemy
+	end
 	sprite ex ey 0
-	if ps == ATTACK then select-player-attack-sprite #if player is attacking, find correct sprite
-	if ps == IDLE then select-player-idle-sprite #if player is idle, find correct sprite
-	if ps == DASH then select-player-idle-sprite #if player is idle, find correct sprite
+	if ps == ATTACK then i := player-weapon-attack #if player is attacking, find correct sprite
+	if ps == IDLE then i := player-weapon #if player is idle, find correct sprite
+	if ps == DASH then i := player-weapon #if player is idle, find correct sprite
 	if vf != 0 then collision
+
 	return	
 
 : collision
+	v0 := 2
+	buzzer := v0
 	sprite px py 0 #erase playerwidth
 	v1 := 20
 	v2 := -5
 	if ps != DASH begin
-		horizontal-negative #move player
+		horizontal-negative #:move player
 	else
 		horizontal-positive
 	end
@@ -220,9 +244,9 @@
 	draw-lives #redraw lives counter
 	
 	# set i back to player sprite after drawing different sprites
-	if ps == ATTACK then select-player-attack-sprite #if player is attacking, find correct sprite
-	if ps == IDLE then select-player-idle-sprite #if player is idle, find correct sprite
-	if ps == DASH then select-player-idle-sprite #if player is idle, find correct sprite
+	if ps == ATTACK then i := player-weapon-attack #if player is attacking, find correct sprite
+	if ps == IDLE then i := player-weapon #if player is idle, find correct sprite
+	if ps == DASH then i := player-weapon #if player is idle, find correct sprite
 	return
 
 : draw-gui
@@ -254,8 +278,11 @@
 : draw-dash-counter
 	v0 := 15
 	v1 := 1
-	if dashflag != 0 then i := dashlogo
-	if dashflag == 0 then i := dashlogo-used
+	if dashcounter > 0 begin
+		i := dashlogo-used
+	else
+		i := dashlogo
+	end
 	sprite v0 v1 0
 	return
 
@@ -281,7 +308,7 @@
 	return
 
 : vertical-positive
-	if py > 8 begin
+	if py > 9 begin
 		if py < 25 then py += -1
 	end
 	return
@@ -312,58 +339,16 @@
 
 : attack
 	if attackcounter == 0 begin
-		playerwidth
-		pwidth += px
-		pwidth += 1
-		if pwidth >= 64 begin
-			if pwidth == 64 begin
-				px += -1
-			end
-		end
 		ps := ATTACK
 		attackcounter := 1
 	end
 	return
 
-: playerwidth
-	pwidth := 0
-	if pe == NONE begin
-		pwidth := 5
-		if ps == ATTACK then pwidth := 6
-	end
-	if pe == WEAPON begin
-		pwidth := 8
-		if ps == ATTACK then pwidth := 9
-	end
-	if pe == SHIELD begin
-		pwidth := 6
-		if ps == ATTACK then pwidth := 7
-	end	
-	if pe == FULL begin
-		pwidth := 9
-		if ps == ATTACK then pwidth := 10
-	end
-	return
-
-: select-player-attack-sprite
-	if pe == NONE then i := player-attack
-	if pe == WEAPON then i := player-weapon-attack
-	if pe == SHIELD then i := player-shield-attack
-	if pe == FULL then i := player-full-attack
-	return
-
-: select-player-idle-sprite
-	if pe == NONE then i := player
-	if pe == WEAPON then i := player-weapon
-	if pe == SHIELD then i := player-shield
-	if pe == FULL then i := player-full
-	return
-
 : dash
-	if dashflag != 0 begin
-		px += 10
+	if dashcounter == 0 begin
+		px += -5
 		draw-dash-counter
-		dashflag += -1
+		dashcounter += 1
 		draw-dash-counter
 		ps := DASH
 	end
@@ -375,6 +360,7 @@
 	py := 20
 	ex := 235
 	ey := 18
+	eyfrac := 100
 	i := enemy
 	sprite ex ey 0
 	return
@@ -386,9 +372,28 @@
 		ex += -1
 	end
 	if py > ey begin
-		ey += 1
+		eyfrac += 20
+		if eyfrac == 200 begin
+			ey += 1
+			eyfrac := 100
+		end
 	else
-		ey += -1
+		eyfrac += -20
+		if eyfrac == 0 begin
+			ey += -1
+			eyfrac := 100
+		end
+	end
+
+	v0 := random 0b0001111
+	if v0 == 3 begin
+		if strikecounter == 0 begin
+			strikecounter := 1
+		end
+	end
+	if strikecounter == 20 begin
+		ex += -3
+		strikecounter := 0
 	end
 	return
 
@@ -474,6 +479,8 @@
 	v0 += 12
 	sprite v0 v1 0
 	loop
+		v0 := 2
+		buzzer := v0
 		v0 := 13   if v0 key then jump main # keyboard Q - dash
 	again
 	return
@@ -528,8 +535,20 @@
 	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
 
 : enemy
-	0x38 0x00 0x38 0x00 0x10 0x00 0xFE 0x00 
-	0x7C 0x00 0x10 0x00 0x38 0x00 0x28 0x00 
+	0x1C 0x00 0x1C 0x00 0x08 0x00 0x7F 0x00 
+	0x3E 0x00 0x08 0x00 0x1C 0x00 0x14 0x00 
+	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+
+: enemy-pullback
+	0x1C 0x00 0x1C 0x00 0x08 0x00 0x3F 0x80 
+	0x3E 0x00 0x08 0x00 0x1C 0x00 0x14 0x00 
+	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+
+: enemy-strike
+	0x1C 0x00 0x1C 0x00 0x08 0x00 0xFE 0x00 
+	0x3E 0x00 0x08 0x00 0x1C 0x00 0x14 0x00 
 	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
 	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
 
@@ -660,16 +679,16 @@
 	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
 
 : da
-	0xE1 0xC0 0x92 0x20 0x8A 0x20 0x8A 0x20 
-	0x8A 0x20 0x8B 0xE0 0x8A 0x20 0x92 0x20 
-	0xE2 0x20 0x00 0x00 0x00 0x00 0x00 0x00 
+	0xE1 0xCE 0x92 0x29 0x8A 0x28 0x8A 0x28 
+	0x8A 0x28 0x8A 0x28 0x8A 0x28 0x92 0x29 
+	0xE1 0xCE 0x00 0x00 0x00 0x00 0x00 0x00 
 	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
 
 : sh
-	0x74 0x80 0x84 0x80 0x84 0x80 0x84 0x80 
-	0x67 0x80 0x14 0x80 0x14 0x80 0x14 0x80 
-	0xE4 0x80 0x00 0x00 0x00 0x00 0x00 0x00 
-	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+	0x1C 0xF0 0x20 0x80 0xA0 0x80 0xA0 0x80 
+	0xA0 0xE0 0xAC 0x80 0xA2 0x80 0x22 0x80 
+	0x1C 0xF0 0x00 0x00 0x00 0x00 0x00 0x00 
+	0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00  
 
 : mo
 	0x6C 0x70 0x92 0x88 0x92 0x88 0x92 0x88 
