@@ -7,7 +7,7 @@ Play it here: https://johnearnest.github.io/Octo/index.html?gist=3b8371228940501
 
 Move with WASD, attack with E and dodge with Q.
 
-2016 – WTFPL license.
+2016 – no license. Copy, steal, distribute. Credit if you want to.
 
 ## Description
 
